@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db, init_database
 from app.crud import check_database_health
 from app.auth import verify_admin_credentials, rate_limit, get_rate_limit_status
+from app.categories import router as categories_router
 
 # 初始化数据库
 init_database()
@@ -20,6 +21,9 @@ templates = Jinja2Templates(directory="templates")
 
 # 配置静态文件服务
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# 注册路由
+app.include_router(categories_router)
 
 
 @app.get("/")

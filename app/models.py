@@ -4,7 +4,7 @@
 """
 from datetime import datetime
 from sqlalchemy import (
-    Column, Integer, String, Text, DateTime, 
+    Column, Integer, String, Text, DateTime, Boolean,
     ForeignKey, Index, UniqueConstraint
 )
 from sqlalchemy.orm import relationship
@@ -17,6 +17,7 @@ class Category(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(50), unique=True, nullable=False, index=True)
     description = Column(String(200))
+    is_active = Column(Boolean, default=True, nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -29,7 +30,10 @@ class Tag(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(30), unique=True, nullable=False, index=True)
+    color = Column(String(7), default="#3b82f6")  # 十六进制颜色值
+    is_active = Column(Boolean, default=True, nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # 关系
     prompt_tags = relationship("PromptTag", back_populates="tag", cascade="all, delete-orphan")
@@ -41,7 +45,12 @@ class Prompt(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(200), nullable=False, index=True)
     content_markdown = Column(Text, nullable=False)
+    description = Column(String(300))  # 提示词描述
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True, index=True)
+    
+    # 状态字段
+    is_featured = Column(Boolean, default=False, nullable=False, index=True)  # 是否精选
+    is_active = Column(Boolean, default=True, nullable=False, index=True)  # 是否激活
     
     # 统计字段
     like_count = Column(Integer, default=0, index=True)

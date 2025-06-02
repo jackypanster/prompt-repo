@@ -125,9 +125,45 @@
 - 更新主页为HTML模板渲染
 - 修复认证测试适配新的根端点
 
+## [v0.5.0] - 2025-01-26 - 分类管理模块
+
+### ✅ 新增功能
+- **分类管理API端点**
+  - `POST /admin/categories` - 创建分类
+  - `GET /admin/categories` - 获取分类列表（支持分页、筛选）
+  - `GET /admin/categories/{id}` - 获取分类详情
+  - `PUT /admin/categories/{id}` - 更新分类
+  - `DELETE /admin/categories/{id}` - 删除分类
+
+- **Pydantic模型定义**
+  - CategoryCreate, CategoryRead, CategoryUpdate 模型
+  - CategoryList 分页响应模型
+  - 完整的数据验证和序列化
+
+- **数据库CRUD操作**
+  - 支持分页查询和计数
+  - 分类名唯一性约束
+  - 删除时检查关联的提示词
+  - 部分更新支持
+
+- **认证与权限控制**
+  - 所有管理端点需要HTTP Basic Auth认证
+  - 完整的错误处理和响应格式
+
+### 🔧 技术改进
+- 扩展数据库模型，添加is_active字段
+- 更新Category、Tag、Prompt模型结构
+- 20个完整的集成测试覆盖
+- 命令行测试验证所有端点
+
+### 📝 验收完成
+- ✅ Pydantic模型定义完整
+- ✅ 集成测试：所有CRUD操作、认证访问、唯一性约束、关联检查
+- ✅ 命令行测试：curl验证所有管理端点（带认证）
+
 ## 下一版本预览
 
-### v0.5.0 - 管理功能模块 (开发中)
-- 分类管理API端点
+### v0.6.0 - 标签管理模块 (开发中)
 - 标签管理API端点
-- 提示词管理API端点 
+- 标签CRUD操作
+- 颜色管理功能 

@@ -2,31 +2,112 @@
 数据库CRUD操作函数
 提供基础的增删改查操作
 """
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import text, func, and_
+from sqlalchemy.exc import IntegrityError
 from app.models import Category, Tag, Prompt, PromptTag, PromptLike
+from app.schemas import CategoryCreate, CategoryUpdate
 
 # 分类CRUD操作
-def create_category(db: Session, name: str, description: str = None) -> Category:
+def create_category(db: Session, category_data: CategoryCreate) -> Category:
     """创建分类"""
-    db_category = Category(name=name, description=description)
-    db.add(db_category)
-    db.commit()
-    db.refresh(db_category)
-    return db_category
+    try:
+        db_category = Category(
+            name=category_data.name,
+            description=category_data.description,
+            is_active=category_data.is_active
+        )
+        db.add(db_category)
+        db.commit()
+        db.refresh(db_category)
+        return db_category
+    except IntegrityError:
+        db.rollback()
+        raise ValueError(f"分类名称 '{category_data.name}' 已存在")
 
-def get_category_by_id(db: Session, category_id: int) -> Optional[Category]:
+def get_category_by_id(db: Session, category_id: int, include_count: bool = False) -> Optional[Category]:
     """根据ID获取分类"""
-    return db.query(Category).filter(Category.id == category_id).first()
+    category = db.query(Category).filter(Category.id == category_id).first()
+    if category and include_count:
+        # 添加关联的提示词数量
+        prompt_count = db.query(func.count(Prompt.id)).filter(
+            and_(Prompt.category_id == category_id, Prompt.is_active == True)
+        ).scalar()
+        category.prompt_count = prompt_count or 0
+    return category
 
 def get_category_by_name(db: Session, name: str) -> Optional[Category]:
     """根据名称获取分类"""
     return db.query(Category).filter(Category.name == name).first()
 
-def get_categories(db: Session) -> List[Category]:
-    """获取所有分类"""
-    return db.query(Category).order_by(Category.name).all()
+def get_categories(
+    db: Session, 
+    skip: int = 0, 
+    limit: int = 100, 
+    include_count: bool = False,
+    active_only: bool = False
+) -> Tuple[List[Category], int]:
+    """获取分类列表（支持分页和计数）"""
+    query = db.query(Category)
+    
+    if active_only:
+        query = query.filter(Category.is_active == True)
+    
+    # 获取总数
+    total = query.count()
+    
+    # 分页查询
+    categories = query.order_by(Category.name).offset(skip).limit(limit).all()
+    
+    # 如果需要包含提示词数量
+    if include_count:
+        for category in categories:
+            prompt_count = db.query(func.count(Prompt.id)).filter(
+                and_(Prompt.category_id == category.id, Prompt.is_active == True)
+            ).scalar()
+            category.prompt_count = prompt_count or 0
+    
+    return categories, total
+
+def update_category(db: Session, category_id: int, category_data: CategoryUpdate) -> Optional[Category]:
+    """更新分类"""
+    category = db.query(Category).filter(Category.id == category_id).first()
+    if not category:
+        return None
+    
+    try:
+        # 只更新提供的字段
+        update_data = category_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(category, field, value)
+        
+        db.commit()
+        db.refresh(category)
+        return category
+    except IntegrityError:
+        db.rollback()
+        if category_data.name:
+            raise ValueError(f"分类名称 '{category_data.name}' 已存在")
+        raise
+
+def delete_category(db: Session, category_id: int, force: bool = False) -> bool:
+    """删除分类"""
+    category = db.query(Category).filter(Category.id == category_id).first()
+    if not category:
+        return False
+    
+    # 检查是否有关联的提示词
+    if not force:
+        prompt_count = db.query(func.count(Prompt.id)).filter(
+            Prompt.category_id == category_id
+        ).scalar()
+        if prompt_count > 0:
+            raise ValueError(f"无法删除分类，存在 {prompt_count} 个关联的提示词")
+    
+    db.delete(category)
+    db.commit()
+    return True
 
 # 标签CRUD操作
 def create_tag(db: Session, name: str) -> Tag:
