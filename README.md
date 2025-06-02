@@ -78,9 +78,9 @@ uvicorn main:app --reload --port 8080
 - **前端基础**: Tailwind CSS + Alpine.js + 响应式设计
 - **分类管理**: 完整的分类CRUD API端点 + 认证保护
 - **标签管理**: 完整的标签CRUD API端点 + 颜色管理 + 认证保护
+- **提示词管理**: 完整的提示词CRUD API端点 + 分类标签关联 + 认证保护
 
 ### 🚧 开发中
-- **提示词管理**: 提示词的管理API端点
 - **公开页面**: 提示词浏览和交互功能
 
 ### 📋 规划功能
@@ -140,7 +140,11 @@ prompt-repo/
 - `GET /admin/tags` - 获取标签列表 (需认证)
 - `PUT /admin/tags/{id}` - 更新标签 (需认证)
 - `DELETE /admin/tags/{id}` - 删除标签 (需认证)
-- `POST /admin/prompts` - 创建提示词 (需认证) (开发中)
+- `POST /admin/prompts` - 创建提示词 (需认证)
+- `GET /admin/prompts` - 获取提示词列表 (需认证)
+- `GET /admin/prompts/{id}` - 获取提示词详情 (需认证)
+- `PUT /admin/prompts/{id}` - 更新提示词 (需认证)
+- `DELETE /admin/prompts/{id}` - 删除提示词 (需认证)
 
 ### 公开端点 (规划中)
 - `GET /` - 提示词列表主页 (Jinja2渲染)

@@ -118,15 +118,32 @@ class PromptUpdate(BaseModel):
     is_active: Optional[bool] = Field(None, description="是否激活")
 
 
-class PromptRead(PromptBase, TimestampMixin):
+class PromptRead(TimestampMixin):
     """提示词输出模型"""
     id: int = Field(..., description="提示词ID")
+    title: str = Field(..., description="提示词标题")
+    content: str = Field(..., description="提示词内容")
+    description: Optional[str] = Field(None, description="提示词描述")
+    category_id: int = Field(..., description="分类ID")
+    tag_ids: List[int] = Field(default=[], description="标签ID列表")
+    is_featured: bool = Field(False, description="是否精选")
+    is_active: bool = Field(True, description="是否激活")
     category: Optional[CategoryRead] = Field(None, description="分类信息")
     tags: List[TagRead] = Field(default=[], description="标签列表")
     like_count: int = Field(0, description="点赞数")
     copy_count: int = Field(0, description="复制数")
     
     model_config = ConfigDict(from_attributes=True)
+
+
+class PromptList(BaseModel):
+    """提示词列表响应模型"""
+    items: List[PromptRead]
+    total: int = Field(..., description="总数量")
+    page: int = Field(1, description="当前页码")
+    per_page: int = Field(20, description="每页数量")
+    has_next: bool = Field(False, description="是否有下一页")
+    has_prev: bool = Field(False, description="是否有上一页")
 
 
 # 通用响应模型

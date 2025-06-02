@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text, func, and_
 from sqlalchemy.exc import IntegrityError
 from app.models import Category, Tag, Prompt, PromptTag, PromptLike
-from app.schemas import CategoryCreate, CategoryUpdate, TagCreate, TagUpdate
+from app.schemas import CategoryCreate, CategoryUpdate, TagCreate, TagUpdate, PromptCreate, PromptUpdate
 
 # 分类CRUD操作
 def create_category(db: Session, category_data: CategoryCreate) -> Category:
@@ -212,30 +212,182 @@ def delete_tag(db: Session, tag_id: int, force: bool = False) -> bool:
     return True
 
 # 提示词CRUD操作
-def create_prompt(
-    db: Session, 
-    title: str, 
-    content_markdown: str, 
-    category_id: Optional[int] = None
-) -> Prompt:
+def create_prompt(db: Session, prompt_data: PromptCreate) -> Prompt:
     """创建提示词"""
-    db_prompt = Prompt(
-        title=title,
-        content_markdown=content_markdown,
-        category_id=category_id
-    )
-    db.add(db_prompt)
-    db.commit()
-    db.refresh(db_prompt)
-    return db_prompt
+    try:
+        # 验证分类是否存在
+        if prompt_data.category_id:
+            category = get_category_by_id(db, prompt_data.category_id)
+            if not category:
+                raise ValueError(f"分类 ID {prompt_data.category_id} 不存在")
+        
+        # 验证标签是否存在
+        if prompt_data.tag_ids:
+            for tag_id in prompt_data.tag_ids:
+                tag = get_tag_by_id(db, tag_id)
+                if not tag:
+                    raise ValueError(f"标签 ID {tag_id} 不存在")
+        
+        # 创建提示词
+        db_prompt = Prompt(
+            title=prompt_data.title,
+            content_markdown=prompt_data.content,
+            description=prompt_data.description,
+            category_id=prompt_data.category_id,
+            is_featured=prompt_data.is_featured,
+            is_active=prompt_data.is_active
+        )
+        db.add(db_prompt)
+        db.commit()
+        db.refresh(db_prompt)
+        
+        # 创建标签关联
+        if prompt_data.tag_ids:
+            for tag_id in prompt_data.tag_ids:
+                prompt_tag = PromptTag(prompt_id=db_prompt.id, tag_id=tag_id)
+                db.add(prompt_tag)
+        
+        db.commit()
+        return db_prompt
+    except Exception as e:
+        db.rollback()
+        raise e
 
-def get_prompt_by_id(db: Session, prompt_id: int) -> Optional[Prompt]:
+def get_prompt_by_id(db: Session, prompt_id: int, include_relations: bool = False) -> Optional[Prompt]:
     """根据ID获取提示词"""
-    return db.query(Prompt).filter(Prompt.id == prompt_id).first()
+    prompt = db.query(Prompt).filter(Prompt.id == prompt_id).first()
+    if prompt and include_relations:
+        # 加载分类信息
+        if prompt.category_id:
+            prompt.category = get_category_by_id(db, prompt.category_id)
+        
+        # 加载标签信息
+        tag_ids = db.query(PromptTag.tag_id).filter(PromptTag.prompt_id == prompt_id).all()
+        tags = []
+        for tag_id_tuple in tag_ids:
+            tag = get_tag_by_id(db, tag_id_tuple[0], include_count=True)
+            if tag:
+                tags.append(tag)
+        prompt.tags = tags
+    
+    return prompt
 
-def get_prompts(db: Session, skip: int = 0, limit: int = 100) -> List[Prompt]:
-    """获取提示词列表"""
-    return db.query(Prompt).offset(skip).limit(limit).all()
+def get_prompts(
+    db: Session, 
+    skip: int = 0, 
+    limit: int = 100,
+    category_id: Optional[int] = None,
+    tag_id: Optional[int] = None,
+    is_featured: Optional[bool] = None,
+    is_active: Optional[bool] = None,
+    include_relations: bool = False
+) -> Tuple[List[Prompt], int]:
+    """获取提示词列表（支持分页和筛选）"""
+    query = db.query(Prompt)
+    
+    # 应用筛选条件
+    if category_id is not None:
+        query = query.filter(Prompt.category_id == category_id)
+    
+    if tag_id is not None:
+        query = query.join(PromptTag).filter(PromptTag.tag_id == tag_id)
+    
+    if is_featured is not None:
+        query = query.filter(Prompt.is_featured == is_featured)
+    
+    if is_active is not None:
+        query = query.filter(Prompt.is_active == is_active)
+    
+    # 获取总数
+    total = query.count()
+    
+    # 分页查询，按创建时间倒序
+    prompts = query.order_by(Prompt.created_at.desc()).offset(skip).limit(limit).all()
+    
+    # 如果需要包含关联信息
+    if include_relations:
+        for prompt in prompts:
+            # 加载分类信息
+            if prompt.category_id:
+                prompt.category = get_category_by_id(db, prompt.category_id)
+            
+            # 加载标签信息
+            tag_ids = db.query(PromptTag.tag_id).filter(PromptTag.prompt_id == prompt.id).all()
+            tags = []
+            for tag_id_tuple in tag_ids:
+                tag = get_tag_by_id(db, tag_id_tuple[0], include_count=True)
+                if tag:
+                    tags.append(tag)
+            prompt.tags = tags
+    
+    return prompts, total
+
+def update_prompt(db: Session, prompt_id: int, prompt_data: PromptUpdate) -> Optional[Prompt]:
+    """更新提示词"""
+    prompt = db.query(Prompt).filter(Prompt.id == prompt_id).first()
+    if not prompt:
+        return None
+    
+    try:
+        # 验证分类是否存在
+        if prompt_data.category_id is not None:
+            category = get_category_by_id(db, prompt_data.category_id)
+            if not category:
+                raise ValueError(f"分类 ID {prompt_data.category_id} 不存在")
+        
+        # 验证标签是否存在
+        if prompt_data.tag_ids is not None:
+            for tag_id in prompt_data.tag_ids:
+                tag = get_tag_by_id(db, tag_id)
+                if not tag:
+                    raise ValueError(f"标签 ID {tag_id} 不存在")
+        
+        # 更新提示词基本信息
+        update_data = prompt_data.model_dump(exclude_unset=True, exclude={'tag_ids'})
+        for field, value in update_data.items():
+            # 处理content字段映射到content_markdown
+            if field == 'content':
+                setattr(prompt, 'content_markdown', value)
+            else:
+                setattr(prompt, field, value)
+        
+        # 更新标签关联
+        if prompt_data.tag_ids is not None:
+            # 删除旧的标签关联
+            db.query(PromptTag).filter(PromptTag.prompt_id == prompt_id).delete()
+            
+            # 创建新的标签关联
+            for tag_id in prompt_data.tag_ids:
+                prompt_tag = PromptTag(prompt_id=prompt_id, tag_id=tag_id)
+                db.add(prompt_tag)
+        
+        db.commit()
+        db.refresh(prompt)
+        return prompt
+    except Exception as e:
+        db.rollback()
+        raise e
+
+def delete_prompt(db: Session, prompt_id: int) -> bool:
+    """删除提示词"""
+    prompt = db.query(Prompt).filter(Prompt.id == prompt_id).first()
+    if not prompt:
+        return False
+    
+    try:
+        # 删除标签关联
+        db.query(PromptTag).filter(PromptTag.prompt_id == prompt_id).delete()
+        
+        # 删除点赞记录
+        db.query(PromptLike).filter(PromptLike.prompt_id == prompt_id).delete()
+        
+        # 删除提示词本身
+        db.delete(prompt)
+        db.commit()
+        return True
+    except Exception as e:
+        db.rollback()
+        raise e
 
 # 数据库健康检查
 def check_database_health(db: Session) -> dict:

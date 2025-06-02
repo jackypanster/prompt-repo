@@ -7,6 +7,7 @@ from app.crud import check_database_health
 from app.auth import verify_admin_credentials, rate_limit, get_rate_limit_status
 from app.categories import router as categories_router
 from app.tags import router as tags_router
+from app.prompts import router as prompts_router
 
 # 初始化数据库
 init_database()
@@ -26,6 +27,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # 注册路由
 app.include_router(categories_router)
 app.include_router(tags_router)
+app.include_router(prompts_router)
 
 
 @app.get("/")

@@ -65,6 +65,15 @@ class Prompt(Base):
     prompt_tags = relationship("PromptTag", back_populates="prompt", cascade="all, delete-orphan")
     likes = relationship("PromptLike", back_populates="prompt", cascade="all, delete-orphan")
     
+    # 为Pydantic模型提供content属性
+    @property
+    def content(self):
+        return self.content_markdown
+    
+    @content.setter
+    def content(self, value):
+        self.content_markdown = value
+    
     # 索引
     __table_args__ = (
         Index('ix_prompts_stats', 'like_count', 'copy_count'),
