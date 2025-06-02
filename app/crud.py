@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text, func, and_
 from sqlalchemy.exc import IntegrityError
 from app.models import Category, Tag, Prompt, PromptTag, PromptLike
-from app.schemas import CategoryCreate, CategoryUpdate
+from app.schemas import CategoryCreate, CategoryUpdate, TagCreate, TagUpdate
 
 # 分类CRUD操作
 def create_category(db: Session, category_data: CategoryCreate) -> Category:
@@ -110,25 +110,106 @@ def delete_category(db: Session, category_id: int, force: bool = False) -> bool:
     return True
 
 # 标签CRUD操作
-def create_tag(db: Session, name: str) -> Tag:
+def create_tag(db: Session, tag_data: TagCreate) -> Tag:
     """创建标签"""
-    db_tag = Tag(name=name)
-    db.add(db_tag)
-    db.commit()
-    db.refresh(db_tag)
-    return db_tag
+    try:
+        db_tag = Tag(
+            name=tag_data.name,
+            color=tag_data.color,
+            is_active=tag_data.is_active
+        )
+        db.add(db_tag)
+        db.commit()
+        db.refresh(db_tag)
+        return db_tag
+    except IntegrityError:
+        db.rollback()
+        raise ValueError(f"标签名称 '{tag_data.name}' 已存在")
 
-def get_tag_by_id(db: Session, tag_id: int) -> Optional[Tag]:
+def get_tag_by_id(db: Session, tag_id: int, include_count: bool = False) -> Optional[Tag]:
     """根据ID获取标签"""
-    return db.query(Tag).filter(Tag.id == tag_id).first()
+    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+    if tag and include_count:
+        # 添加使用次数
+        usage_count = db.query(func.count(PromptTag.id)).filter(
+            and_(PromptTag.tag_id == tag_id, 
+                 PromptTag.prompt.has(Prompt.is_active == True))
+        ).scalar()
+        tag.usage_count = usage_count or 0
+    return tag
 
 def get_tag_by_name(db: Session, name: str) -> Optional[Tag]:
     """根据名称获取标签"""
     return db.query(Tag).filter(Tag.name == name).first()
 
-def get_tags(db: Session) -> List[Tag]:
-    """获取所有标签"""
-    return db.query(Tag).order_by(Tag.name).all()
+def get_tags(
+    db: Session, 
+    skip: int = 0, 
+    limit: int = 100, 
+    include_count: bool = False,
+    active_only: bool = False
+) -> Tuple[List[Tag], int]:
+    """获取标签列表（支持分页和计数）"""
+    query = db.query(Tag)
+    
+    if active_only:
+        query = query.filter(Tag.is_active == True)
+    
+    # 获取总数
+    total = query.count()
+    
+    # 分页查询
+    tags = query.order_by(Tag.name).offset(skip).limit(limit).all()
+    
+    # 如果需要包含使用次数
+    if include_count:
+        for tag in tags:
+            usage_count = db.query(func.count(PromptTag.id)).filter(
+                and_(PromptTag.tag_id == tag.id,
+                     PromptTag.prompt.has(Prompt.is_active == True))
+            ).scalar()
+            tag.usage_count = usage_count or 0
+    
+    return tags, total
+
+def update_tag(db: Session, tag_id: int, tag_data: TagUpdate) -> Optional[Tag]:
+    """更新标签"""
+    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+    if not tag:
+        return None
+    
+    try:
+        # 只更新提供的字段
+        update_data = tag_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(tag, field, value)
+        
+        db.commit()
+        db.refresh(tag)
+        return tag
+    except IntegrityError:
+        db.rollback()
+        if tag_data.name:
+            raise ValueError(f"标签名称 '{tag_data.name}' 已存在")
+        raise
+
+def delete_tag(db: Session, tag_id: int, force: bool = False) -> bool:
+    """删除标签"""
+    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+    if not tag:
+        return False
+    
+    # 检查是否有关联的提示词
+    if not force:
+        usage_count = db.query(func.count(PromptTag.id)).filter(
+            PromptTag.tag_id == tag_id
+        ).scalar()
+        if usage_count > 0:
+            raise ValueError(f"无法删除标签，存在 {usage_count} 个关联的提示词")
+    
+    db.delete(tag)
+    db.commit()
+    return True
 
 # 提示词CRUD操作
 def create_prompt(

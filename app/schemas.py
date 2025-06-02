@@ -80,6 +80,16 @@ class TagRead(TagBase, TimestampMixin):
     model_config = ConfigDict(from_attributes=True)
 
 
+class TagList(BaseModel):
+    """标签列表响应模型"""
+    items: List[TagRead]
+    total: int = Field(..., description="总数量")
+    page: int = Field(1, description="当前页码")
+    per_page: int = Field(20, description="每页数量")
+    has_next: bool = Field(False, description="是否有下一页")
+    has_prev: bool = Field(False, description="是否有上一页")
+
+
 # 提示词相关模型（为后续任务预留）
 class PromptBase(BaseModel):
     """提示词基础模型"""
