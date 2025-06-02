@@ -1,4 +1,6 @@
 from fastapi import FastAPI, Depends, Request
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from app.database import get_db, init_database
 from app.crud import check_database_health
@@ -8,15 +10,29 @@ from app.auth import verify_admin_credentials, rate_limit, get_rate_limit_status
 init_database()
 
 app = FastAPI(
-    title="提示词分享平台 - 后端 MVP",
-    description="为博主提供提示词发布和管理的后端 API",
-    version="0.1.0"
+    title="提示词分享平台 - 极简MVP",
+    description="一体化的提示词发布、管理和分享平台",
+    version="0.3.0"
 )
+
+# 配置模板引擎
+templates = Jinja2Templates(directory="templates")
+
+# 配置静态文件服务
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 @app.get("/")
-async def root():
-    return {"message": "Hello World", "app": "提示词分享平台后端 MVP"}
+async def homepage(request: Request):
+    """主页 - 提示词列表页面"""
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html", 
+        context={
+            "title": "提示词分享平台",
+            "description": "发现和分享优质的AI提示词"
+        }
+    )
 
 
 @app.get("/health")

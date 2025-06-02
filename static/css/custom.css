@@ -1,0 +1,158 @@
+/* 提示词分享平台自定义样式 */
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* 动画效果 */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(-10px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* 按钮hover效果增强 */
+.btn-hover-lift:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s ease;
+}
+
+/* 卡片悬停效果 */
+.card-hover:hover {
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+}
+
+/* 加载动画 */
+.loading-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* 提示信息样式 */
+.toast {
+    animation: toast-in 0.3s ease, toast-out 0.3s ease 2.7s forwards;
+}
+
+@keyframes toast-in {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes toast-out {
+    from { transform: translateY(0); opacity: 1; }
+    to { transform: translateY(-100%); opacity: 0; }
+}
+
+/* 响应式文本 */
+@media (max-width: 640px) {
+    .responsive-text-xl {
+        font-size: 1.5rem;
+        line-height: 2rem;
+    }
+}
+
+/* 焦点状态优化 */
+.focus-ring:focus {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px #3b82f6;
+}
+
+/* 状态指示器 */
+.status-indicator {
+    position: relative;
+}
+
+.status-indicator::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #10b981;
+    border: 2px solid white;
+}
+
+.status-indicator.offline::before {
+    background-color: #ef4444;
+}
+
+/* 代码块样式 */
+.code-block {
+    background-color: #1e293b;
+    color: #e2e8f0;
+    border-radius: 6px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+/* 复制按钮样式 */
+.copy-button {
+    transition: all 0.2s ease;
+}
+
+.copy-button:hover {
+    background-color: #f3f4f6;
+}
+
+.copy-button.copied {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+/* 点赞按钮样式 */
+.like-button {
+    transition: all 0.2s ease;
+}
+
+.like-button:hover {
+    color: #ef4444;
+    transform: scale(1.1);
+}
+
+.like-button.liked {
+    color: #ef4444;
+    animation: heartbeat 0.6s ease-in-out;
+}
+
+@keyframes heartbeat {
+    0% { transform: scale(1); }
+    14% { transform: scale(1.3); }
+    28% { transform: scale(1); }
+    42% { transform: scale(1.3); }
+    70% { transform: scale(1); }
+} 

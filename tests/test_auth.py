@@ -86,11 +86,13 @@ def test_health_check_endpoints():
     assert response.json()["status"] == "healthy"
 
 def test_root_endpoint():
-    """测试根端点"""
+    """测试根端点（现在返回HTML模板）"""
     response = client.get("/")
     assert response.status_code == 200
-    assert "Hello World" in response.json()["message"]
-    assert "提示词分享平台后端 MVP" in response.json()["app"]
+    # 现在根端点返回HTML模板，不是JSON
+    assert "text/html" in response.headers.get("content-type", "")
+    assert "提示词分享平台" in response.text
+    assert "发现优质" in response.text
 
 def test_api_docs_accessible():
     """测试API文档端点可访问"""
