@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <!-- 头部区域 -->
+    <div class="mb-8">
+        <nav class="flex mb-4" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-4">
+                <li>
+                    <a href="/" class="text-gray-500 hover:text-gray-700">首页</a>
+                </li>
+                <li>
+                    <span class="text-gray-500">/</span>
+                </li>
+                <li>
+                    <span class="text-gray-900 font-medium">{{ tag.name }}</span>
+                </li>
+            </ol>
+        </nav>
+        
+        <div class="flex items-center space-x-4">
+            <div class="text-3xl">🏷️</div>
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">
+                    <span class="inline-flex items-center px-3 py-1 rounded text-lg font-medium"
+                          style="background-color: {{ tag.color }}20; color: {{ tag.color }};">
+                        {{ tag.name }}
+                    </span>
+                </h1>
+                <p class="mt-2 text-gray-600">
+                    浏览带有此标签的所有提示词
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 排序和统计 -->
+    <div class="mb-6 bg-white rounded-lg shadow p-4">
+        <div class="flex items-center justify-between">
+            <div class="text-sm text-gray-500">
+                共找到 {{ pagination.total }} 个提示词
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <label for="sort-filter" class="text-sm font-medium text-gray-700">排序：</label>
+                <select id="sort-filter" class="border border-gray-300 rounded-md px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onchange="updateSort(this.value)">
+                    {% for option in sort_options %}
+                    <option value="{{ option.value }}" {% if current_sort == option.value %}selected{% endif %}>
+                        {{ option.label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- 提示词列表 -->
+    {% if prompts %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {% for prompt in prompts %}
+        <div class="bg-white rounded-lg shadow hover:shadow-md transition-shadow p-6">
+            <!-- 标题和精选标识 -->
+            <div class="flex items-start justify-between mb-3">
+                <h3 class="text-lg font-semibold text-gray-900 truncate">
+                    {{ prompt.title }}
+                </h3>
+                {% if prompt.is_featured %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 ml-2 flex-shrink-0">
+                    精选
+                </span>
+                {% endif %}
+            </div>
+
+            <!-- 描述 -->
+            {% if prompt.description %}
+            <p class="text-gray-600 text-sm mb-3 line-clamp-2">
+                {{ prompt.description }}
+            </p>
+            {% endif %}
+
+            <!-- 内容预览 -->
+            <div class="bg-gray-50 rounded p-3 mb-3">
+                <p class="text-sm text-gray-700 line-clamp-3">
+                    {{ prompt.content[:150] }}{% if prompt.content|length > 150 %}...{% endif %}
+                </p>
+            </div>
+
+            <!-- 分类和其他标签 -->
+            <div class="mb-3">
+                {% if prompt.category %}
+                <a href="/category/{{ prompt.category.name }}" 
+                   class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 hover:bg-blue-200 mr-2 mb-1">
+                    📂 {{ prompt.category.name }}
+                </a>
+                {% endif %}
+                
+                {% for prompt_tag in prompt.tags %}
+                {% if prompt_tag.name == tag.name %}
+                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium mr-1 mb-1"
+                      style="background-color: {{ prompt_tag.color }}; color: white;">
+                    🏷️ {{ prompt_tag.name }}
+                </span>
+                {% else %}
+                <a href="/tag/{{ prompt_tag.name }}" 
+                   class="inline-flex items-center px-2 py-1 rounded text-xs font-medium mr-1 mb-1"
+                   style="background-color: {{ prompt_tag.color }}20; color: {{ prompt_tag.color }};">
+                    🏷️ {{ prompt_tag.name }}
+                </a>
+                {% endif %}
+                {% endfor %}
+            </div>
+
+            <!-- 统计和操作 -->
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3 text-sm text-gray-500">
+                    <span class="flex items-center">
+                        👍 {{ prompt.like_count }}
+                    </span>
+                    <span class="flex items-center">
+                        📋 {{ prompt.copy_count }}
+                    </span>
+                    <span class="text-xs">
+                        {{ prompt.created_at.strftime('%m-%d') }}
+                    </span>
+                </div>
+                <a href="/prompt/{{ prompt.id }}" 
+                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    查看详情 →
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 分页 -->
+    {% if pagination.total_pages > 1 %}
+    <div class="flex items-center justify-between bg-white px-4 py-3 rounded-lg shadow">
+        <div class="flex items-center text-sm text-gray-500">
+            显示第 {{ (pagination.page - 1) * pagination.per_page + 1 }} - 
+            {{ [pagination.page * pagination.per_page, pagination.total] | min }} 项，
+            共 {{ pagination.total }} 项
+        </div>
+        
+        <div class="flex items-center space-x-2">
+            <!-- 上一页 -->
+            {% if pagination.has_prev %}
+            <a href="?page={{ pagination.page - 1 }}&sort={{ current_sort }}" 
+               class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50">
+                上一页
+            </a>
+            {% endif %}
+
+            <!-- 页码 -->
+            {% for page_num in pagination.page_range %}
+            {% if page_num == pagination.page %}
+            <span class="px-3 py-1 text-sm bg-blue-500 text-white rounded">
+                {{ page_num }}
+            </span>
+            {% else %}
+            <a href="?page={{ page_num }}&sort={{ current_sort }}" 
+               class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50">
+                {{ page_num }}
+            </a>
+            {% endif %}
+            {% endfor %}
+
+            <!-- 下一页 -->
+            {% if pagination.has_next %}
+            <a href="?page={{ pagination.page + 1 }}&sort={{ current_sort }}" 
+               class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50">
+                下一页
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- 空状态 -->
+    <div class="text-center py-12">
+        <div class="text-6xl mb-4">🏷️</div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">此标签暂无提示词</h3>
+        <p class="text-gray-500 mb-4">
+            带有 "{{ tag.name }}" 标签的提示词还没有创建。
+        </p>
+        <a href="/" class="text-blue-600 hover:text-blue-800">
+            查看所有提示词
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- 其他标签导航 -->
+    {% if tags %}
+    <div class="mt-12 bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">
+            其他标签
+        </h3>
+        <div class="flex flex-wrap gap-2">
+            {% for other_tag in tags %}
+            {% if other_tag.name != tag.name %}
+            <a href="/tag/{{ other_tag.name }}" 
+               class="inline-flex items-center px-3 py-1 rounded text-sm font-medium hover:opacity-80 transition-opacity"
+               style="background-color: {{ other_tag.color }}20; color: {{ other_tag.color }};">
+                🏷️ {{ other_tag.name }} ({{ other_tag.usage_count or 0 }})
+            </a>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateSort(sort) {
+    const url = new URL(window.location);
+    url.searchParams.set('sort', sort);
+    url.searchParams.set('page', '1');
+    window.location.href = url.toString();
+}
+
+// 添加CSS样式用于文本截断
+const style = document.createElement('style');
+style.textContent = '.line-clamp-2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.line-clamp-3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}';
+document.head.appendChild(style);
+</script>
+{% endblock %} 
