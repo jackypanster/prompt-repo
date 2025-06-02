@@ -280,7 +280,8 @@ def get_prompts(
     tag_id: Optional[int] = None,
     is_featured: Optional[bool] = None,
     is_active: Optional[bool] = None,
-    include_relations: bool = False
+    include_relations: bool = False,
+    order_by: str = "created_at"
 ) -> Tuple[List[Prompt], int]:
     """获取提示词列表（支持分页和筛选）"""
     query = db.query(Prompt)
@@ -301,8 +302,20 @@ def get_prompts(
     # 获取总数
     total = query.count()
     
-    # 分页查询，按创建时间倒序
-    prompts = query.order_by(Prompt.created_at.desc()).offset(skip).limit(limit).all()
+    # 根据排序参数选择排序方式
+    if order_by == "like_count":
+        query = query.order_by(Prompt.like_count.desc(), Prompt.created_at.desc())
+    elif order_by == "copy_count":
+        query = query.order_by(Prompt.copy_count.desc(), Prompt.created_at.desc())
+    elif order_by == "hot":
+        # 热门排序：综合点赞数和复制数
+        query = query.order_by((Prompt.like_count + Prompt.copy_count).desc(), Prompt.created_at.desc())
+    else:
+        # 默认按创建时间倒序
+        query = query.order_by(Prompt.created_at.desc())
+    
+    # 分页查询
+    prompts = query.offset(skip).limit(limit).all()
     
     # 如果需要包含关联信息
     if include_relations:
@@ -321,6 +334,58 @@ def get_prompts(
             prompt.tags = tags
     
     return prompts, total
+
+def get_prompts_by_category_name(
+    db: Session,
+    category_name: str,
+    skip: int = 0,
+    limit: int = 20,
+    order_by: str = "created_at"
+) -> Tuple[List[Prompt], int, Optional[Category]]:
+    """根据分类名称获取提示词列表"""
+    # 查找分类
+    category = get_category_by_name(db, category_name)
+    if not category:
+        return [], 0, None
+    
+    # 获取该分类下的提示词
+    prompts, total = get_prompts(
+        db=db,
+        skip=skip,
+        limit=limit,
+        category_id=category.id,
+        is_active=True,
+        include_relations=True,
+        order_by=order_by
+    )
+    
+    return prompts, total, category
+
+def get_prompts_by_tag_name(
+    db: Session,
+    tag_name: str,
+    skip: int = 0,
+    limit: int = 20,
+    order_by: str = "created_at"
+) -> Tuple[List[Prompt], int, Optional[Tag]]:
+    """根据标签名称获取提示词列表"""
+    # 查找标签
+    tag = get_tag_by_name(db, tag_name)
+    if not tag:
+        return [], 0, None
+    
+    # 获取该标签下的提示词
+    prompts, total = get_prompts(
+        db=db,
+        skip=skip,
+        limit=limit,
+        tag_id=tag.id,
+        is_active=True,
+        include_relations=True,
+        order_by=order_by
+    )
+    
+    return prompts, total, tag
 
 def update_prompt(db: Session, prompt_id: int, prompt_data: PromptUpdate) -> Optional[Prompt]:
     """更新提示词"""

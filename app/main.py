@@ -8,6 +8,7 @@ from app.auth import verify_admin_credentials, rate_limit, get_rate_limit_status
 from app.categories import router as categories_router
 from app.tags import router as tags_router
 from app.prompts import router as prompts_router
+from app.public import router as public_router
 
 # 初始化数据库
 init_database()
@@ -24,23 +25,16 @@ templates = Jinja2Templates(directory="templates")
 # 配置静态文件服务
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# 注册路由
+# 注册管理路由
 app.include_router(categories_router)
 app.include_router(tags_router)
 app.include_router(prompts_router)
 
+# 注册公开页面路由（放在最后，让它能处理根路径）
+app.include_router(public_router)
 
-@app.get("/")
-async def homepage(request: Request):
-    """主页 - 提示词列表页面"""
-    return templates.TemplateResponse(
-        request=request,
-        name="index.html", 
-        context={
-            "title": "提示词分享平台",
-            "description": "发现和分享优质的AI提示词"
-        }
-    )
+
+# 主页现在由public_router处理
 
 
 @app.get("/health")

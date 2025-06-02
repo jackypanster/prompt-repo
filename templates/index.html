@@ -1,215 +1,238 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-    <!-- 欢迎区域 -->
-    <div class="text-center mb-12">
-        <h1 class="text-4xl font-extrabold text-gray-900 sm:text-5xl md:text-6xl">
-            <span class="block">发现优质</span>
-            <span class="block text-primary-600">AI提示词</span>
+<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <!-- 头部区域 -->
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">
+            提示词分享平台
         </h1>
-        <p class="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
-            {{ description }}。集成分类管理、标签筛选、一键复制等功能，让AI交互更高效。
+        <p class="mt-2 text-gray-600">
+            发现和分享优质的AI提示词
         </p>
     </div>
 
-    <!-- 功能特性 -->
-    <div class="mt-16">
-        <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            <!-- 分类管理 -->
-            <div class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                <div>
-                    <span class="rounded-lg inline-flex p-3 bg-primary-50 text-primary-600 ring-4 ring-white">
-                        📂
-                    </span>
-                </div>
-                <div class="mt-8">
-                    <h3 class="text-lg font-medium text-gray-900">
-                        分类管理
-                    </h3>
-                    <p class="mt-2 text-sm text-gray-500">
-                        按照使用场景分类整理提示词，如文生图、编程辅助、文案写作等，便于快速查找。
-                    </p>
-                </div>
+    <!-- 筛选和排序区域 -->
+    <div class="mb-6 bg-white rounded-lg shadow p-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- 分类筛选 -->
+            <div>
+                <label for="category-filter" class="block text-sm font-medium text-gray-700 mb-2">分类筛选</label>
+                <select id="category-filter" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                        onchange="updateFilter('category', this.value)">
+                    <option value="">所有分类</option>
+                    {% for category in categories %}
+                    <option value="{{ category.name }}" {% if current_category == category.name %}selected{% endif %}>
+                        {{ category.name }} ({{ category.prompt_count or 0 }})
+                    </option>
+                    {% endfor %}
+                </select>
             </div>
 
-            <!-- 标签系统 -->
-            <div class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                <div>
-                    <span class="rounded-lg inline-flex p-3 bg-green-50 text-green-600 ring-4 ring-white">
-                        🏷️
-                    </span>
-                </div>
-                <div class="mt-8">
-                    <h3 class="text-lg font-medium text-gray-900">
-                        标签系统
-                    </h3>
-                    <p class="mt-2 text-sm text-gray-500">
-                        灵活的标签管理，支持多标签关联，通过标签快速筛选相关的提示词内容。
-                    </p>
-                </div>
+            <!-- 标签筛选 -->
+            <div>
+                <label for="tag-filter" class="block text-sm font-medium text-gray-700 mb-2">标签筛选</label>
+                <select id="tag-filter" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onchange="updateFilter('tag', this.value)">
+                    <option value="">所有标签</option>
+                    {% for tag in tags %}
+                    <option value="{{ tag.name }}" {% if current_tag == tag.name %}selected{% endif %}>
+                        {{ tag.name }} ({{ tag.usage_count or 0 }})
+                    </option>
+                    {% endfor %}
+                </select>
             </div>
 
-            <!-- 一键复制 -->
-            <div class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                <div>
-                    <span class="rounded-lg inline-flex p-3 bg-amber-50 text-amber-600 ring-4 ring-white">
-                        📋
-                    </span>
-                </div>
-                <div class="mt-8">
-                    <h3 class="text-lg font-medium text-gray-900">
-                        一键复制
-                    </h3>
-                    <p class="mt-2 text-sm text-gray-500">
-                        点击即可复制提示词到剪贴板，支持复制统计和防滥用限频，提升使用体验。
-                    </p>
-                </div>
-            </div>
-
-            <!-- 点赞互动 -->
-            <div class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                <div>
-                    <span class="rounded-lg inline-flex p-3 bg-red-50 text-red-600 ring-4 ring-white">
-                        👍
-                    </span>
-                </div>
-                <div class="mt-8">
-                    <h3 class="text-lg font-medium text-gray-900">
-                        点赞互动
-                    </h3>
-                    <p class="mt-2 text-sm text-gray-500">
-                        为优质提示词点赞，帮助其他用户发现热门内容，防重复点赞确保数据真实性。
-                    </p>
-                </div>
-            </div>
-
-            <!-- 搜索筛选 -->
-            <div class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                <div>
-                    <span class="rounded-lg inline-flex p-3 bg-purple-50 text-purple-600 ring-4 ring-white">
-                        🔍
-                    </span>
-                </div>
-                <div class="mt-8">
-                    <h3 class="text-lg font-medium text-gray-900">
-                        智能搜索
-                    </h3>
-                    <p class="mt-2 text-sm text-gray-500">
-                        支持按标题、内容、分类、标签进行搜索，快速找到所需的提示词内容。
-                    </p>
-                </div>
-            </div>
-
-            <!-- 管理功能 -->
-            <div class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                <div>
-                    <span class="rounded-lg inline-flex p-3 bg-indigo-50 text-indigo-600 ring-4 ring-white">
-                        ⚙️
-                    </span>
-                </div>
-                <div class="mt-8">
-                    <h3 class="text-lg font-medium text-gray-900">
-                        便捷管理
-                    </h3>
-                    <p class="mt-2 text-sm text-gray-500">
-                        简洁的管理界面，支持提示词的创建、编辑、删除，分类和标签的维护管理。
-                    </p>
-                </div>
+            <!-- 排序方式 -->
+            <div>
+                <label for="sort-filter" class="block text-sm font-medium text-gray-700 mb-2">排序方式</label>
+                <select id="sort-filter" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onchange="updateFilter('sort', this.value)">
+                    {% for option in sort_options %}
+                    <option value="{{ option.value }}" {% if current_sort == option.value %}selected{% endif %}>
+                        {{ option.label }}
+                    </option>
+                    {% endfor %}
+                </select>
             </div>
         </div>
     </div>
 
-    <!-- 状态信息 -->
-    <div class="mt-16 bg-white overflow-hidden shadow rounded-lg">
-        <div class="px-4 py-5 sm:p-6">
-            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
-                平台状态
-            </h3>
-            <div x-data="statusChecker()" x-init="checkStatus()">
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <div class="text-sm font-medium text-gray-500">应用状态</div>
-                        <div class="mt-1 text-sm text-gray-900" x-text="appStatus">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                正常运行
-                            </span>
-                        </div>
-                    </div>
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <div class="text-sm font-medium text-gray-500">数据库</div>
-                        <div class="mt-1 text-sm text-gray-900" x-text="dbStatus">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                WAL模式
-                            </span>
-                        </div>
-                    </div>
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <div class="text-sm font-medium text-gray-500">认证系统</div>
-                        <div class="mt-1 text-sm text-gray-900">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                Basic Auth
-                            </span>
-                        </div>
-                    </div>
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <div class="text-sm font-medium text-gray-500">版本</div>
-                        <div class="mt-1 text-sm text-gray-900">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                v0.3.0
-                            </span>
-                        </div>
-                    </div>
+    <!-- 提示词列表 -->
+    {% if prompts %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {% for prompt in prompts %}
+        <div class="bg-white rounded-lg shadow hover:shadow-md transition-shadow p-6">
+            <!-- 标题和精选标识 -->
+            <div class="flex items-start justify-between mb-3">
+                <h3 class="text-lg font-semibold text-gray-900 truncate">
+                    {{ prompt.title }}
+                </h3>
+                {% if prompt.is_featured %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 ml-2 flex-shrink-0">
+                    精选
+                </span>
+                {% endif %}
+            </div>
+
+            <!-- 描述 -->
+            {% if prompt.description %}
+            <p class="text-gray-600 text-sm mb-3 line-clamp-2">
+                {{ prompt.description }}
+            </p>
+            {% endif %}
+
+            <!-- 内容预览 -->
+            <div class="bg-gray-50 rounded p-3 mb-3">
+                <p class="text-sm text-gray-700 line-clamp-3">
+                    {{ prompt.content[:150] }}{% if prompt.content|length > 150 %}...{% endif %}
+                </p>
+            </div>
+
+            <!-- 分类和标签 -->
+            <div class="mb-3">
+                {% if prompt.category %}
+                <a href="/category/{{ prompt.category.name }}" 
+                   class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 hover:bg-blue-200 mr-2">
+                    📂 {{ prompt.category.name }}
+                </a>
+                {% endif %}
+                
+                {% for tag in prompt.tags %}
+                <a href="/tag/{{ tag.name }}" 
+                   class="inline-flex items-center px-2 py-1 rounded text-xs font-medium mr-1 mb-1"
+                   style="background-color: {{ tag.color }}20; color: {{ tag.color }};">
+                    🏷️ {{ tag.name }}
+                </a>
+                {% endfor %}
+            </div>
+
+            <!-- 统计和操作 -->
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3 text-sm text-gray-500">
+                    <span class="flex items-center">
+                        👍 {{ prompt.like_count }}
+                    </span>
+                    <span class="flex items-center">
+                        📋 {{ prompt.copy_count }}
+                    </span>
+                    <span class="text-xs">
+                        {{ prompt.created_at.strftime('%m-%d') }}
+                    </span>
                 </div>
+                <a href="/prompt/{{ prompt.id }}" 
+                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    查看详情 →
+                </a>
             </div>
         </div>
+        {% endfor %}
     </div>
 
-    <!-- 快速链接 -->
-    <div class="mt-12 text-center">
-        <div class="space-x-4">
-            <a href="/admin" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 transition-colors">
-                进入管理
+    <!-- 分页 -->
+    {% if pagination.total_pages > 1 %}
+    <div class="flex items-center justify-between bg-white px-4 py-3 rounded-lg shadow">
+        <div class="flex items-center text-sm text-gray-500">
+            显示第 {{ (pagination.page - 1) * pagination.per_page + 1 }} - 
+            {{ [pagination.page * pagination.per_page, pagination.total] | min }} 项，
+            共 {{ pagination.total }} 项
+        </div>
+        
+        <div class="flex items-center space-x-2">
+            <!-- 上一页 -->
+            {% if pagination.has_prev %}
+            <a href="?page={{ pagination.page - 1 }}&sort={{ current_sort }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_tag %}&tag={{ current_tag }}{% endif %}" 
+               class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50">
+                上一页
             </a>
-            <a href="/docs" class="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                API文档
+            {% endif %}
+
+            <!-- 页码 -->
+            {% for page_num in pagination.page_range %}
+            {% if page_num == pagination.page %}
+            <span class="px-3 py-1 text-sm bg-blue-500 text-white rounded">
+                {{ page_num }}
+            </span>
+            {% else %}
+            <a href="?page={{ page_num }}&sort={{ current_sort }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_tag %}&tag={{ current_tag }}{% endif %}" 
+               class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50">
+                {{ page_num }}
             </a>
+            {% endif %}
+            {% endfor %}
+
+            <!-- 下一页 -->
+            {% if pagination.has_next %}
+            <a href="?page={{ pagination.page + 1 }}&sort={{ current_sort }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_tag %}&tag={{ current_tag }}{% endif %}" 
+               class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50">
+                下一页
+            </a>
+            {% endif %}
         </div>
     </div>
+    {% endif %}
+
+    {% else %}
+    <!-- 空状态 -->
+    <div class="text-center py-12">
+        <div class="text-6xl mb-4">📝</div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">暂无提示词</h3>
+        <p class="text-gray-500 mb-4">
+            {% if current_category or current_tag %}
+            当前筛选条件下没有找到提示词，请尝试其他筛选条件。
+            {% else %}
+            平台还没有提示词，管理员可以通过管理界面添加。
+            {% endif %}
+        </p>
+        {% if current_category or current_tag %}
+        <a href="/" class="text-blue-600 hover:text-blue-800">
+            查看所有提示词
+        </a>
+        {% else %}
+        <a href="/admin" class="text-blue-600 hover:text-blue-800">
+            进入管理界面
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    function statusChecker() {
-        return {
-            appStatus: '检查中...',
-            dbStatus: '检查中...',
-            
-            async checkStatus() {
-                try {
-                    // 检查应用状态
-                    const healthResponse = await fetch('/health');
-                    if (healthResponse.ok) {
-                        this.appStatus = '✅ 正常运行';
-                    } else {
-                        this.appStatus = '❌ 异常';
-                    }
-                    
-                    // 检查数据库状态
-                    const dbResponse = await fetch('/db-health');
-                    if (dbResponse.ok) {
-                        const dbData = await dbResponse.json();
-                        this.dbStatus = `✅ ${dbData.wal_mode ? 'WAL模式' : 'Normal模式'}`;
-                    } else {
-                        this.dbStatus = '❌ 连接失败';
-                    }
-                } catch (error) {
-                    this.appStatus = '❌ 连接失败';
-                    this.dbStatus = '❌ 连接失败';
-                }
-            }
-        }
+function updateFilter(type, value) {
+    const url = new URL(window.location);
+    
+    // 更新筛选参数
+    if (value) {
+        url.searchParams.set(type, value);
+    } else {
+        url.searchParams.delete(type);
     }
+    
+    // 重置到第一页
+    url.searchParams.set('page', '1');
+    
+    // 跳转
+    window.location.href = url.toString();
+}
+
+// 添加CSS样式用于文本截断
+const style = document.createElement('style');
+style.textContent = `
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+`;
+document.head.appendChild(style);
 </script>
 {% endblock %} 
