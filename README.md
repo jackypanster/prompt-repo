@@ -1,54 +1,51 @@
-# 提示词分享平台 - 后端 MVP
+# 提示词分享平台 - 极简MVP
 
-这是一个"小而美"的提示词分享平台后端服务，旨在让博主能够方便地发布、管理他们日常高频使用的提示词（Prompts）。
+这是一个"小而美"的提示词分享平台，采用单一FastAPI服务架构，让博主能够方便地发布、管理和分享日常高频使用的提示词（Prompts）。
 
 ## 技术栈
 
-- **框架**: FastAPI
-- **语言**: Python 3.9+
+- **框架**: FastAPI (单一服务)
+- **语言**: Python 3.12+
 - **环境管理**: uv
-- **数据库**: Supabase (PostgreSQL)
-- **认证**: Supabase Auth (JWT)
-- **部署**: Vercel
+- **数据库**: SQLite + WAL模式 (本地数据库)
+- **前端**: Jinja2模板 + Tailwind CSS + Alpine.js
+- **认证**: HTTP Basic Auth (管理功能)
+- **部署**: 本地运行，24/7服务
 
 ## 快速开始
 
 ### 环境要求
 
-- Python 3.9+
-- uv (推荐) 或 pip
+- Python 3.12+
+- uv (推荐的包管理工具)
 
-### 安装依赖
+### 快速启动
 
-使用 uv（推荐）：
 ```bash
-# 创建虚拟环境
-uv venv
+# 克隆项目
+git clone <repository-url>
+cd prompt-repo
 
-# 激活虚拟环境
-source .venv/Scripts/activate  # Windows Git Bash
-# 或 source .venv/bin/activate  # Linux/macOS
+# 使用uv同步环境和依赖
+uv sync
 
-# 安装依赖
-uv pip install -r requirements.txt
+# 启动应用
+uv run uvicorn main:app --port 8080 --reload
 ```
 
-使用 pip：
+### 传统安装方式
+
 ```bash
 # 创建虚拟环境
 python -m venv .venv
 
-# 激活虚拟环境
-source .venv/Scripts/activate  # Windows Git Bash
-# 或 source .venv/bin/activate  # Linux/macOS
+# 激活虚拟环境 (Windows Git Bash)
+source .venv/Scripts/activate
 
 # 安装依赖
-pip install -r requirements.txt
-```
+pip install fastapi uvicorn sqlalchemy pydantic
 
-### 运行应用
-
-```bash
+# 启动应用
 uvicorn main:app --reload --port 8080
 ```
 
@@ -58,7 +55,29 @@ uvicorn main:app --reload --port 8080
 
 - 主页: http://localhost:8080/
 - 健康检查: http://localhost:8080/health
+- 数据库状态: http://localhost:8080/db-health
 - API 文档: http://localhost:8080/docs
+
+## 当前功能状态
+
+### ✅ 已完成
+- **项目基础**: FastAPI应用框架 + uv环境管理
+- **数据库**: SQLite + WAL模式，完整表结构和索引
+- **数据模型**: 分类、标签、提示词、关联关系、点赞记录
+- **基础CRUD**: 分类、标签、提示词的基础操作
+- **健康检查**: 应用和数据库状态监控
+
+### 🚧 开发中
+- **认证系统**: HTTP Basic Auth管理员认证
+- **管理界面**: 博主内容管理功能
+- **前端页面**: 公众浏览和交互功能
+- **防滥用机制**: IP限频和防重复点赞
+
+### 📋 规划功能
+- **提示词浏览**: 分页、筛选、排序
+- **交互功能**: 点赞、复制统计、一键复制
+- **搜索功能**: 按标题、内容、分类、标签搜索
+- **响应式UI**: 移动端和桌面端适配
 
 ## 项目结构
 
@@ -67,18 +86,52 @@ prompt-repo/
 ├── app/                    # 应用代码
 │   ├── __init__.py
 │   ├── main.py            # FastAPI 应用入口
-│   ├── auth/              # 认证相关模块
-│   ├── prompts/           # 提示词管理模块
-│   ├── categories/        # 分类管理模块
-│   ├── tags/              # 标签管理模块
-│   └── models/            # Pydantic 模型
+│   ├── database.py        # 数据库连接和配置
+│   ├── models.py          # SQLAlchemy 数据模型
+│   ├── crud.py            # 基础CRUD操作
+│   ├── auth/              # 认证相关模块 (开发中)
+│   ├── prompts/           # 提示词管理模块 (规划中)
+│   ├── categories/        # 分类管理模块 (规划中)
+│   └── tags/              # 标签管理模块 (规划中)
 ├── tests/                 # 测试代码
+│   └── test_database.py   # 数据库功能测试
 ├── docs/                  # 项目文档
-├── .venv/                 # 虚拟环境
+│   ├── PRD.md            # 需求文档
+│   ├── arch.md           # 架构文档
+│   ├── design.md         # 设计文档
+│   ├── impl.md           # 实现文档
+│   └── task-todo.md      # 任务清单
+├── .venv/                 # 虚拟环境 (uv管理)
+├── prompts.db*            # SQLite 数据库文件 (自动创建)
 ├── main.py               # 项目入口点
-├── requirements.txt       # 依赖列表
+├── pyproject.toml        # 项目配置和依赖
+├── .gitignore            # Git忽略文件
 └── README.md             # 项目说明
 ```
+
+## 当前API端点
+
+### 基础端点
+- `GET /` - 主页欢迎信息
+- `GET /health` - 应用健康检查
+- `GET /db-health` - 数据库状态检查
+- `GET /docs` - FastAPI自动生成的API文档
+
+### 管理端点 (开发中)
+- `POST /admin/categories` - 创建分类 (需认证)
+- `GET /admin/categories` - 获取分类列表 (需认证)
+- `PUT /admin/categories/{id}` - 更新分类 (需认证)
+- `DELETE /admin/categories/{id}` - 删除分类 (需认证)
+- `POST /admin/tags` - 创建标签 (需认证)
+- `POST /admin/prompts` - 创建提示词 (需认证)
+
+### 公开端点 (规划中)
+- `GET /` - 提示词列表主页 (Jinja2渲染)
+- `GET /prompt/{id}` - 提示词详情页
+- `GET /category/{name}` - 分类筛选页
+- `GET /tag/{name}` - 标签筛选页
+- `POST /api/prompts/{id}/like` - 点赞提示词 (需限频)
+- `POST /api/prompts/{id}/copy` - 复制统计 (需限频)
 
 ## 开发规范
 
@@ -86,6 +139,7 @@ prompt-repo/
 - 遵循原子任务与顺序执行原则
 - 文档优先、测试优先的开发理念
 - 严格的版本控制与持续集成
+- 极简设计、零配置启动、本地优先
 
 ## 文档
 
